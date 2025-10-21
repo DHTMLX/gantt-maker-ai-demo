@@ -82,7 +82,7 @@ If you prefer running locally without Docker:
 
 ```bash
 npm install
-cp .env.example .env
+cp .env.dev.example .env
 # Edit .env with your API keys
 
 npm run dev:backend    # http://localhost:3001
