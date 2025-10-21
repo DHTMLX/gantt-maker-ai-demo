@@ -48,28 +48,63 @@ the user's request provided via the chatbot, is sent to LLM, which then calls a 
 - `gpt-4.1-nano` has noticeable limitations in following the schema.
 - If experimenting with other providers, make sure they support **function calling**.
 
-## Quick start (with Docker)
+## Quick start
+
+### Option 1: Production mode (Docker)
 
 ```bash
-git clone https://github.com/DHTMLX/gantt-maker-ai-demo.git
-cd gantt-ai-chat-demo
+git clone https://github.com/DHTMLX/%REPO%.git
+cd gantt-maker-ai-demo
 cp .env.example .env
+# Edit .env with your API keys
 docker compose up --build
 ```
 
-Open http://localhost:3000 in your browser.
-The frontend will connect to the backend running on http://localhost:3001. Make sure you have a valid OpenAI API key or another LLM provider configured in your .env.
+Open http://localhost in your browser. The frontend runs on port 80, backend on port 3001. Make sure you have a valid OpenAI API key or another LLM provider configured in your .env.
 
-## .env format:
+### Option 2: Development mode (Docker)
+
+Run with hot-reload for development:
+
+```bash
+git clone https://github.com/DHTMLX/%REPO%.git
+cd gantt-maker-ai-demo
+cp .env.dev.example .env
+# Edit .env with your API keys
+docker compose -f docker-compose.dev.yml up --build
+```
+
+Open **http://localhost:3000** in your browser. Changes to code will auto-reload.
+
+### Option 3: Local development (without Docker)
+
+If you prefer running locally without Docker:
+
+```bash
+npm install
+cp .env.example .env
+# Edit .env with your API keys
+
+npm run dev:backend    # http://localhost:3001
+npm run dev:frontend   # http://localhost:3000
+```
+
+---
+
+## Environment Variables
 
 ```bash
 # LLM API configuration
 OPENAI_API_KEY=YOUR_OPENAI_API_KEY
 OPENAI_BASE_URL=YOUR_OPENAI_BASE_URL
 
-# Frontend-backend communication
-VITE_SOCKET_URL_DOCKER=http://backend:3001
-FRONTEND_ORIGIN_DOCKER=http://frontend:3000
+# Production mode (docker-compose.yml)
+VITE_SOCKET_URL_DOCKER=http://localhost:3001
+FRONTEND_ORIGIN_DOCKER=http://localhost
+
+# Development mode (docker-compose.dev.yml)
+VITE_SOCKET_URL_DOCKER=http://localhost:3001
+FRONTEND_ORIGIN_DOCKER=http://localhost:3000
 ```
 
 ## Repo structure:
@@ -99,7 +134,9 @@ backend/
  └─ package.json
 
 docker-compose.yml  
+docker-compose.dev.yml
 .env.example  
+.env.dev.example  
 package.json  
 README.md  
 .gitignore
