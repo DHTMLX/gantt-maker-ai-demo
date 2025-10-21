@@ -53,7 +53,7 @@ the user's request provided via the chatbot, is sent to LLM, which then calls a 
 ### Option 1: Production mode (Docker)
 
 ```bash
-git clone https://github.com/DHTMLX/%REPO%.git
+git clone https://github.com/DHTMLX/gantt-maker-ai-demo.git
 cd gantt-maker-ai-demo
 cp .env.example .env
 # Edit .env with your API keys
@@ -67,7 +67,7 @@ Open http://localhost in your browser. The frontend runs on port 80, backend on 
 Run with hot-reload for development:
 
 ```bash
-git clone https://github.com/DHTMLX/%REPO%.git
+git clone https://github.com/DHTMLX/gantt-maker-ai-demo.git
 cd gantt-maker-ai-demo
 cp .env.dev.example .env
 # Edit .env with your API keys
