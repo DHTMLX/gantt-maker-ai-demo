@@ -7,6 +7,7 @@ on:
 
 env:
   PROJECT_NAME: gantt-maker-ai-demo
+  USERNAME: ${{ github.actor | lower }}
 
 jobs:
   build-and-push:
@@ -22,13 +23,13 @@ jobs:
 
       - name: Build and push backend image
         run: |
-          docker build -t ${{ secrets.DOCKER_REGISTRY_URL }}/${{ github.actor }}/gantt-maker-backend:main -f backend/Dockerfile ./backend
-          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${{ github.actor }}/gantt-maker-backend:main
+          docker build -t ${{ secrets.DOCKER_REGISTRY_URL }}/${USERNAME}/gantt-maker-backend:main -f backend/Dockerfile ./backend
+          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${USERNAME}/gantt-maker-backend:main
 
       - name: Build and push frontend image
         run: |
-          docker build -t ${{ secrets.DOCKER_REGISTRY_URL }}/${{ github.actor }}/gantt-maker-frontend:main -f frontend/Dockerfile ./frontend
-          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${{ github.actor }}/gantt-maker-frontend:main
+          docker build -t ${{ secrets.DOCKER_REGISTRY_URL }}/${USERNAME}/gantt-maker-frontend:main -f frontend/Dockerfile ./frontend
+          docker push ${{ secrets.DOCKER_REGISTRY_URL }}/${USERNAME}/gantt-maker-frontend:main
 
   deploy:
     name: Deploy to Production Server
