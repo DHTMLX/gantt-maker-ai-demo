@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import OpenAI from "openai";
 import { schemaList } from "./schemaList.js";
 import { log } from "./logger.js";
+import { getMessagesHistoryByClient } from "./helper.js";
 
 const app = express();
 const http = createServer(app);
@@ -21,7 +22,10 @@ io.on("connection", (socket) => {
   socket.on("user_msg", async (text) => {
     const { message, project } = JSON.parse(text);
 
-    const reply = await talkToLLM(message, project);
+    const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt(project));
+    messages.push({ role: "user", content: message });
+
+    const reply = await talkToLLM(messages);
     if (reply.assistant_msg) socket.emit("assistant_msg", reply.assistant_msg);
     if (reply.call) socket.emit("tool_call", reply.call);
   });
@@ -87,17 +91,13 @@ Remember to use tools in your replies.
 `;
 }
 
-async function talkToLLM(request, project) {
-  const messages = [
-    { role: "system", content: generateSystemPrompt(project) },
-    { role: "user", content: request },
-  ];
+async function talkToLLM(request) {
 
   log.success("calling llm");
   const res = await openai.chat.completions.create({
     model: "gpt-5-nano",
     reasoning_effort: "low",
-    messages: messages,
+    messages: request,
     tools: schemaList,
   });
 
