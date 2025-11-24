@@ -1,4 +1,4 @@
-const sessionMessagesByClient = new Map();
+export const sessionMessagesByClient = new Map();
 // saving user response history
 export function getMessagesHistoryByClient(socketId, systemPrompt) {
    const existingHistory = sessionMessagesByClient.get(socketId);

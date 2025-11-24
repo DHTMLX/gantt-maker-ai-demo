@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import OpenAI from "openai";
 import { schemaList } from "./schemaList.js";
 import { log } from "./logger.js";
-import { getMessagesHistoryByClient } from "./helper.js";
+import { getMessagesHistoryByClient, sessionMessagesByClient } from "./helper.js";
 
 const app = express();
 const http = createServer(app);
@@ -28,6 +28,9 @@ io.on("connection", (socket) => {
     const reply = await talkToLLM(messages);
     if (reply.assistant_msg) socket.emit("assistant_msg", reply.assistant_msg);
     if (reply.call) socket.emit("tool_call", reply.call);
+  });
+  socket.on("disconnect", () => {
+    sessionMessagesByClient.delete(socket.id);
   });
 });
 
