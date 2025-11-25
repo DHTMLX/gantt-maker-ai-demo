@@ -9,7 +9,7 @@ export function getMessagesHistoryByClient(socketId, systemPrompt) {
 
    const newHistory = [
     {
-      role: "system",
+      role: "assistant",
       content: systemPrompt,
     },
   ];
