@@ -111,7 +111,7 @@ async function talkToLLM(request) {
   const msg = res.choices[0].message;
   let content = msg.content;
   let calls = msg.tool_calls;
-  console.log(msg, content)
+
   const toolCall = calls ? calls[0] : "";
 
   log.info(`output: ${content}`);
