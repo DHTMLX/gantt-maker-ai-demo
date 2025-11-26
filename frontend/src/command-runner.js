@@ -263,10 +263,26 @@ export default function (gantt) {
         });
         break;
 
+      case "create_tasks":
+        gantt.parse({
+          data: args.tasks,
+          links:
+            (args.links || []).map((l) => {
+              return {
+                source: l.source || l.sourceId,
+                target: l.target || l.targetId,
+                type: l.type,
+                lag: l.lag || 0,
+              };
+            }) || [],
+        });
+        break;
+
       case "clear_all":
         gantt.clearAll();
         break;
-
+      case "get_gantt_state":
+        break;
       default:
         console.warn("Unknown cmd:", cmd, args);
     }

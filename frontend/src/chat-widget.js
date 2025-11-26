@@ -69,7 +69,7 @@ export const initChat = ({ socket, runCommand, getProject }) => {
 
       const payload = {
         message,
-        project: getProject(),
+        state: getProject(),
       };
       showLoader();
       socket.emit('user_msg', JSON.stringify(payload));
@@ -92,7 +92,7 @@ export const initChat = ({ socket, runCommand, getProject }) => {
       let handled = false;
       try {
         const { cmd, params } = JSON.parse(txt);
-
+        console.log(cmd, params)
         if (cmd && cmd !== 'none') {
           runCommand(cmd, params);
           hideLoader();
