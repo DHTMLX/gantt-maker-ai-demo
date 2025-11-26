@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import OpenAI from "openai";
 import { schemaList } from "./schemaList.js";
 import { log } from "./logger.js";
-import { getMessagesHistoryByClient, sessionMessagesByClient } from "./helper.js";
+import { getMessagesHistoryByClient, sessionMessagesByClient, pushAssistantAndToolReplies } from "./helper.js";
 
 const app = express();
 const http = createServer(app);
@@ -20,30 +20,39 @@ app.use(express.static("../frontend/dist"));
 
 io.on("connection", (socket) => {
   socket.on("user_msg", async (text) => {
-    const { message, project } = JSON.parse(text);
-    const ganttState = `Here is the current gantt state: ${JSON.stringify(project)}`;
-    const questionContent = `Here is the question: ${message}`;
+    const { message, state } = JSON.parse(text);
     const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt());
-    messages.push({ role: "user", content: ganttState });
-    messages.push({ role: "user", content: questionContent });
+    messages.push({ role: "user", content: message });
+    const maxTurns = 3;
+    // handling conversation
+    for (let turn = 1; turn <= maxTurns; turn++) {
+      const reply = await talkToLLM(messages);
+      // if assistant ask additional question
+      if (reply.assistant_msg) {
+        socket.emit("assistant_msg", reply.assistant_msg);
+        messages.push({
+          role: "assistant",
+          content: reply.assistant_msg,
+        });
+      }
+      // if assistant used tool_call
+      if (reply.call) {
+        pushAssistantAndToolReplies(reply, messages);
 
-    const reply = await talkToLLM(messages);
-    // if assistant ask additional question
-    if (reply.assistant_msg) socket.emit("assistant_msg", reply.assistant_msg);
-    // if assistant used tool_call
-    if (reply.call){
-      messages.push({
-        role: "assistant",
-        tool_calls: reply.tool_calls,
-        content: reply.content ?? "",
-      });
-      messages.push({
-        role: "tool",
-        tool_call_id: reply.tool_call_id,
-        content: reply.content ?? "",
-      });
-      socket.emit("tool_call", reply.call);
-    } 
+        if (reply.tool_calls[0].function.name === "get_gantt_state") {
+          messages.push({ role: "user", content: JSON.stringify(state) });
+          continue;
+        } else {
+          socket.emit("tool_call", reply.call);
+        }
+      }
+      if (turn > maxTurns) {
+        socket.emit("assistant_msg", "cant complete this request due to too many tool steps");
+        return;
+      }
+      break;
+    }
+
   });
   socket.on("disconnect", () => {
     sessionMessagesByClient.delete(socket.id);
@@ -59,6 +68,10 @@ Always use one tool call for one command.
 
 Your replies will be displayed in chat side panel, so try to be short and clear. You can use markdown formatting.
 
+Rules for answers:
+1. If you need to know information about current Gantt state, tasks, links invoke **get_gantt_state**
+2. If there is no information in your history about Gantt data in user's question, check the actual state of Gantt with **get_gantt_state**
+
 Remember to use tools in your replies.
 `;
 }
@@ -72,7 +85,7 @@ async function talkToLLM(request) {
     messages: request,
     tools: schemaList,
   });
-  
+
   log.success("Got LLM reply");
   log.info(
     `Prompt tokens: ${res.usage.prompt_tokens}, response tokens: ${res.usage.completion_tokens}, total tokens: ${res.usage.total_tokens}`

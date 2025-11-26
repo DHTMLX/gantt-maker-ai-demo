@@ -27,3 +27,16 @@ function trimHistory(messageHistory, maxPairs = 20) {
     messageHistory.push(systemMessage, ...lastMessages);
   }
 }
+
+export function pushAssistantAndToolReplies(reply, messages) {
+  messages.push({
+    role: "assistant",
+    tool_calls: reply.tool_calls,
+    content: reply.content ?? "",
+  });
+  messages.push({
+    role: "tool",
+    tool_call_id: reply.tool_call_id,
+    content: reply.content ?? "",
+  });
+}
