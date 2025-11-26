@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import OpenAI from "openai";
 import { schemaList } from "./schemaList.js";
 import { log } from "./logger.js";
-import { getMessagesHistoryByClient, sessionMessagesByClient, pushAssistantAndToolReplies } from "./helper.js";
+import { getMessagesHistoryByClient, sessionMessagesByClient } from "./helper.js";
 
 const app = express();
 const http = createServer(app);
@@ -37,12 +37,29 @@ io.on("connection", (socket) => {
       }
       // if assistant used tool_call
       if (reply.call) {
-        pushAssistantAndToolReplies(reply, messages);
-
         if (reply.tool_calls[0].function.name === "get_gantt_state") {
-          messages.push({ role: "user", content: JSON.stringify(state) });
+          messages.push({
+            role: "assistant",
+            tool_calls: reply.tool_calls,
+            content: reply.content ?? "",
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: reply.tool_call_id,
+            content: JSON.stringify(state),
+          });
           continue;
         } else {
+          messages.push({
+            role: "assistant",
+            tool_calls: reply.tool_calls,
+            content: reply.content ?? "",
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: reply.tool_call_id,
+            content: reply.content ?? "",
+          });
           socket.emit("tool_call", reply.call);
         }
       }
@@ -94,7 +111,7 @@ async function talkToLLM(request) {
   const msg = res.choices[0].message;
   let content = msg.content;
   let calls = msg.tool_calls;
-
+  console.log(msg, content)
   const toolCall = calls ? calls[0] : "";
 
   log.info(`output: ${content}`);
