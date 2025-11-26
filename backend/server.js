@@ -21,9 +21,12 @@ app.use(express.static("../frontend/dist"));
 io.on("connection", (socket) => {
   socket.on("user_msg", async (text) => {
     const { message, project } = JSON.parse(text);
+    const ganttState = `Here is the current gantt state: ${JSON.stringify(project)}`;
+    const questionContent = `Here is the question: ${message}`;
+    const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt());
+    messages.push({ role: "user", content: ganttState });
+    messages.push({ role: "user", content: questionContent });
 
-    const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt(project));
-    messages.push({ role: "user", content: message });
     const reply = await talkToLLM(messages);
     // if assistant ask additional question
     if (reply.assistant_msg) socket.emit("assistant_msg", reply.assistant_msg);
