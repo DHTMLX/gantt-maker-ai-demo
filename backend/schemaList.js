@@ -23,7 +23,7 @@ export const schemaList = [
                 text: { type: "string" },
                 start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
                 duration: { type: "number", description: "Duration is always an integer" },
-                parent: { type: ["string", "number", "null"], description: "Task ID to nest under, or null for root" },
+                parent: { type: ["string", "number"], description: "Task ID to nest under, or 0 for root" },
                 progress: { type: "number", description: "The task progress ratio (0.0-1.0)", minimum: 0, maximum: 1 },
               },
               required: ["id", "text", "start_date", "duration", "parent", "progress"],
@@ -54,6 +54,7 @@ export const schemaList = [
       },
     },
   },
+  /* 1 ──────────────────────────  TASK CRUD  ───────────────────────────── */
   {
     type: "function",
     function: {
@@ -108,12 +109,75 @@ export const schemaList = [
   {
     type: "function",
     function: {
+      name: "update_tasks",
+      description:
+        `If the user wants to update, change one, several or all tasks. Turn a free-form description into a array of Gantt tasks. 
+        Returns ready-to-parse 'tasks[]'`,
+      parameters: {
+        type: "object",
+        properties: {
+          tasks: {
+            type: "array",
+            description: "Flat list of task objects exactly as dhtmlxGantt expects.",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: ["string", "number"] },
+                text: { type: "string" },
+                start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
+                duration: { type: "number", description: "Duration is always an integer" },
+                parent: { type: ["string", "number", "null"], description: "Task ID to nest under, or null for root" },
+                progress: { type: "number", description: "The task progress ratio (0.0-1.0)", minimum: 0, maximum: 1 },
+              },
+              required: ["id", "text", "start_date", "duration", "parent", "progress"],
+            },
+            minItems: 1,
+          },
+        },
+        required: ["projectName", "tasks",],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_tasks",
+      description:
+        `If the user wants to delete one, several or all tasks. Turn a free-form description into a array of Gantt tasks. 
+        Returns ready-to-parse 'tasks[]'`,
+      parameters: {
+        type: "object",
+        properties: {
+          tasks: {
+            type: "array",
+            description: "Flat list of task objects exactly as dhtmlxGantt expects.",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: ["string", "number"] },
+                text: { type: "string" },
+                start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
+                duration: { type: "number", description: "Duration is always an integer" },
+                parent: { type: ["string", "number", "null"], description: "Task ID to nest under, or null for root" },
+                progress: { type: "number", description: "The task progress ratio (0.0-1.0)", minimum: 0, maximum: 1 },
+              },
+              required: ["id", "text", "start_date", "duration", "parent", "progress"],
+            },
+            minItems: 1,
+          },
+        },
+        required: ["projectName", "tasks",],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "clear_all",
       description: "Clear all tasks, links, markers, and layers from the Gantt.",
       parameters: { type: "object", properties: {}, required: [] },
     },
   },
-  /* 1 ──────────────────────────  TASK CRUD  ───────────────────────────── */
   {
     type: "function",
     function: {
@@ -135,44 +199,9 @@ export const schemaList = [
   {
     type: "function",
     function: {
-      name: "update_task",
-      description: "Modify one or more fields of an existing task.",
-      parameters: {
-        type: "object",
-        properties: {
-          id: { type: ["string", "number"] },
-          text: { type: "string" },
-          start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
-          duration: { type: "number", description: "Duration is always an integer" },
-          parent: { type: ["string", "number", "null"], description: "Task ID to nest under, or null for root" },
-        },
-        required: ["id"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
-      name: "delete_task",
-      description: "Delete an existing task by its ID.",
-      parameters: {
-        type: "object",
-        properties: {
-          id: {
-            type: ["string", "number"],
-            description: "ID of the task to delete",
-          },
-        },
-        required: ["id"],
-      },
-    },
-  },
-  {
-    type: "function",
-    function: {
       name: "split_task",
       description:
-        "Replace a single task by a list of subtasks and optionally wire Finish-to-Start links between them.",
+        "Replace a single task and its child tasks(if they exist), with updated child tasks(according to the split_placement property) and optionally wire Finish-to-Start links between them.",
       parameters: {
         type: "object",
         properties: {
@@ -186,8 +215,9 @@ export const schemaList = [
                 text: { type: "string" },
                 start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
                 duration: { type: "number", description: "Duration is always an integer" },
+                split_placement : {type: "string", description: "'auto' (default) - a subtask is rendered as a subrow, 'inline' - a subtask is rendered on the parent row, 'subrow' - a subtask is rendered as a subrow"}
               },
-              required: ["id", "text", "start_date", "duration"],
+              required: ["id", "text", "start_date", "duration", "split_placement"],
             },
             minItems: 1,
           },
@@ -198,21 +228,31 @@ export const schemaList = [
     },
   },
 
-  /* 2 ─────────────────────────  DEPENDENCIES  ─────────────────────────── */
+  /* 2 ─────────────────────────  DEPENDENCIES(LINKS)  ─────────────────────────── */
   {
     type: "function",
     function: {
-      name: "add_link",
-      description: "Create a dependency between two tasks.",
+      name: "add_links",
+      description: "If the user wants to create, add one, several or all links. Turn a free-form description into a array of Gantt links. Returns ready-to-parse 'links[]'",
       parameters: {
         type: "object",
-        properties: {
-          source: { type: ["string", "number"], description: "ID of the source task" },
-          target: { type: ["string", "number"], description: "ID of the target task" },
-          type: {
-            type: "string",
-            enum: ["0", "1", "2", "3"],
-            description: "0 is Finish to Start, 1 is Start to Start, 2 is Finish to Finish, 3 is Start to Finish",
+          properties: {
+          links: {
+            type: "array",
+            description: "Flat list of link objects exactly as dhtmlxGantt expects.",
+            items: {
+              type: "object",
+              properties: {
+                source: { type: ["string", "number"], description: "ID of the source task" },
+                target: { type: ["string", "number"], description: "ID of the target task" },
+                type: {
+                  type: "string",
+                  enum: ["0", "1", "2", "3"],
+                  description: "0 is Finish to Start, 1 is Start to Start, 2 is Finish to Finish, 3 is Start to Finish",
+                },
+              },
+            },
+            minItems: 1,
           },
         },
         required: ["source", "target", "type"],
@@ -520,53 +560,79 @@ export const schemaList = [
       },
     },
   },
-  // {
-  //   type: "function",
-  //   function: {
-  //     name: "get_project_state",
-  //     description: "Return the current state of Gantt tasks[], links[] (optionally)",
-  //     parameters: {
-  //       type: "object",
-  //       properties: {
-  //         tasks: {
-  //           type: "array",
-  //           description: "Flat list of task objects exactly from dhtmlxGantt",
-  //           items: {
-  //             type: "object",
-  //             properties: {
-  //               id: { type: ["string", "number"] },
-  //               text: { type: "string" },
-  //               start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
-  //               duration: { type: "number", description: "Duration is always an integer" },
-  //               parent: { type: ["string", "number", "null"], description: "Task ID to nest under, or null for root" },
-  //               progress: { type: "number", description: "The task progress ratio (0.0-1.0)", minimum: 0, maximum: 1 },
-  //             },
-  //             required: ["id", "text", "start_date", "duration", "parent", "progress"],
-  //           },
-  //           minItems: 1,
-  //         },
-  //         links: {
-  //           type: "array",
-  //           description: "Optional dependency list; same fields as `add_link` uses.",
-  //           items: {
-  //             type: "object",
-  //             properties: {
-  //               id: { type: ["string", "number"] },
-  //               source: { type: ["string", "number"] },
-  //               target: { type: ["string", "number"] },
-  //               type: {
-  //                 type: "string",
-  //                 enum: ["0", "1", "2", "3"],
-  //                 description: "0 is Finish to Start, 1 is Start to Start, 2 is Finish to Finish, 3 is Start to Finish",
-  //               },
-  //             },
-  //             required: ["id", "source", "target", "type"],
-  //           },
-  //           minItems: 0,
-  //         },
-  //       },
-  //       required: ["projectName", "tasks", "links"],
-  //     },
-  //   },
-  // },
+  {
+    type: 'function',
+    function: {
+      name: 'highlight_critical_path',
+      description: 'Highlight the critical path in the Gantt chart.',
+      parameters: {
+        type: 'object',
+        properties: {
+          enable: { type: 'boolean' },
+        },
+        required: ['enable'],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "skip_command",
+      description: "Use this function when the user request does not match any other Gantt functionality described in schema list. If the description doesn't fit to any of the provided tool functions use 'skip_command'",
+      parameters: { 
+        type: "object", 
+        properties: {}, 
+        required: [] 
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_gantt_state",
+      description: "Return the current state of Gantt tasks[], links[] (optionally)",
+      parameters: {
+        type: "object",
+        properties: {
+          tasks: {
+            type: "array",
+            description: "Flat list of task objects exactly from dhtmlxGantt",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: ["string", "number"] },
+                text: { type: "string" },
+                start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
+                duration: { type: "number", description: "Duration is always an integer" },
+                parent: { type: ["string", "number"], description: "Task ID to nest under, or 0 for root" },
+                progress: { type: "number", description: "The task progress ratio (0.0-1.0)", minimum: 0, maximum: 1 },
+              },
+              required: ["id", "text", "start_date", "duration", "parent", "progress"],
+            },
+            minItems: 1,
+          },
+          links: {
+            type: "array",
+            description: "Optional dependency list; same fields as `add_link` uses.",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: ["string", "number"] },
+                source: { type: ["string", "number"] },
+                target: { type: ["string", "number"] },
+                type: {
+                  type: "string",
+                  enum: ["0", "1", "2", "3"],
+                  description: "0 is Finish to Start, 1 is Start to Start, 2 is Finish to Finish, 3 is Start to Finish",
+                },
+              },
+              required: ["id", "source", "target", "type"],
+            },
+            minItems: 0,
+          },
+        },
+        required: ["projectName", "tasks", "links"],
+      },
+    },
+  },
 ];

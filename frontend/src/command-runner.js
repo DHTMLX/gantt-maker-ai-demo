@@ -8,40 +8,65 @@ export default function (gantt) {
         gantt.addTask(args);
         break;
 
-      case "update_task":
-        const changes = {...args};
-        if(changes.start_date){
-          changes.start_date = gantt.templates.parse_date(changes.start_date);
-        }
-        if(changes.end_date){
-          changes.end_date = gantt.templates.parse_date(changes.end_date);
-        }
+      case "update_tasks":{
+        const { tasks } = args;
+        gantt.batchUpdate(function () {
+					tasks.forEach(task => {
+            if(!gantt.isTaskExists(task.id)){
+              console.warn(`there is no such task in Gantt: ${task.id}`)
+              return;
+            }
+            let existedTask = gantt.getTask(task.id);
+            if(existedTask.type === "project") return;
 
-        if(changes.start_date && changes.duration){
-          changes.end_date = gantt.calculateEndDate({
-            start_date: changes.start_date,
-            duration: changes.duration,
-            task: gantt.getTask(args.id)
-          });
-        } else if (changes.end_date && changes.duration){
-          changes.start_date = gantt.calculateEndDate({
-            start_date: changes.end_date,
-            duration: -changes.duration,
-            task: gantt.getTask(args.id)
-          });
-        }
-
-        Object.assign(gantt.getTask(args.id), changes);
-        gantt.updateTask(args.id);
+            if(task.start_date){
+              task.start_date = gantt.templates.parse_date(task.start_date);
+            }
+            if(task.end_date){
+              task.end_date = gantt.templates.parse_date(task.end_date);
+            }
+            if(task.start_date && task.duration){
+              task.end_date = gantt.calculateEndDate({
+                start_date: task.start_date,
+                duration: task.duration,
+                task: existedTask
+              });
+            } else if (task.end_date && task.duration){
+              task.start_date = gantt.calculateEndDate({
+                start_date: task.end_date,
+                duration: -task.duration,
+                task: existedTask
+              });
+            } else if(task.duration){
+                task.end_date = gantt.calculateEndDate({
+                start_date: existedTask.start_date,
+                duration: task.duration,
+                task: existedTask
+              });
+            }
+            Object.assign(existedTask, task);
+            gantt.updateTask(task.id);
+					});
+			  });
         break;
+      }
 
-      case "delete_task":
-        gantt.deleteTask(args.id);
+      case "delete_tasks": {
+        const { tasks } = args;
+        gantt.batchUpdate(function () {
+          tasks.forEach(task => {
+            if(gantt.isTaskExists(task.id)){
+              gantt.deleteTask(task.id);
+            }
+          });
+        });
         break;
+      }
 
       case "split_task": {
         const parent = gantt.getTask(args.id || args.task_id);
         parent.$open = true;
+        parent.render = "split";
         const newIds = [];
         (args.subtasks || args.new_tasks).forEach((t) => {
           newIds.push(gantt.addTask({ ...t, id: gantt.uid(), parent: parent.id }));
@@ -58,18 +83,32 @@ export default function (gantt) {
         break;
       }
 
-      case "add_link":
-        gantt.addLink({
-          id: gantt.uid(),
-          source: args.source,
-          target: args.target,
-          type: args.type,
+      case "add_links":{
+        const { links } = args;
+        gantt.batchUpdate(function () {
+          links.forEach(link => {
+            gantt.addLink({
+              id: link.id,
+              source: link.source,
+              target: link.target,
+              type: link.type,
+            });
+          });
         });
         break;
+      }
 
-      case "delete_link":
-        gantt.deleteLink(args.id);
+      case "delete_links":{
+        const { links } = args;
+        gantt.batchUpdate(function () {
+          links.forEach(link => {
+            if(gantt.isLinkExists(link.id)){
+              gantt.deleteLink(link.id);
+            }
+          });
+        })
         break;
+      }
 
       case "style_task": {
         const { id, color } = args;
@@ -278,10 +317,17 @@ export default function (gantt) {
         });
         break;
 
+      case 'highlight_critical_path':
+        gantt.config.highlight_critical_path = args.enable;
+        gantt.render();
+        break;
+
       case "clear_all":
         gantt.clearAll();
         break;
 
+      case "get_gantt_state":
+        break;
       default:
         console.warn("Unknown cmd:", cmd, args);
     }

@@ -20,27 +20,56 @@ app.use(express.static("../frontend/dist"));
 
 io.on("connection", (socket) => {
   socket.on("user_msg", async (text) => {
-    const { message, project } = JSON.parse(text);
-
-    const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt(project));
+    const { message, state } = JSON.parse(text);
+    const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt());
     messages.push({ role: "user", content: message });
-    const reply = await talkToLLM(messages);
-    // if assistant ask additional question
-    if (reply.assistant_msg) socket.emit("assistant_msg", reply.assistant_msg);
-    // if assistant used tool_call
-    if (reply.call){
-      messages.push({
-        role: "assistant",
-        tool_calls: reply.tool_calls,
-        content: reply.content ?? "",
-      });
-      messages.push({
-        role: "tool",
-        tool_call_id: reply.tool_call_id,
-        content: reply.content ?? "",
-      });
-      socket.emit("tool_call", reply.call);
-    } 
+    const maxTurns = 3;
+    // handling conversation
+    for (let turn = 1; turn <= maxTurns; turn++) {
+      const reply = await talkToLLM(messages);
+      // if assistant ask additional question
+      if (reply.assistant_msg) {
+        socket.emit("assistant_msg", reply.assistant_msg);
+        messages.push({
+          role: "assistant",
+          content: reply.assistant_msg,
+        });
+      }
+      // if assistant used tool_call
+      if (reply.call) {
+        if (reply.tool_calls[0].function.name === "get_gantt_state") {
+          messages.push({
+            role: "assistant",
+            tool_calls: reply.tool_calls,
+            content: reply.content ?? "",
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: reply.tool_call_id,
+            content: JSON.stringify(state),
+          });
+          continue;
+        } else {
+          messages.push({
+            role: "assistant",
+            tool_calls: reply.tool_calls,
+            content: reply.content ?? "",
+          });
+          messages.push({
+            role: "tool",
+            tool_call_id: reply.tool_call_id,
+            content: reply.content ?? "",
+          });
+          socket.emit("tool_call", reply.call);
+        }
+      }
+      if (turn > maxTurns) {
+        socket.emit("assistant_msg", "cant complete this request due to too many tool steps");
+        return;
+      }
+      break;
+    }
+
   });
   socket.on("disconnect", () => {
     sessionMessagesByClient.delete(socket.id);
@@ -52,9 +81,20 @@ function generateSystemPrompt() {
 
 Today is ${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}
 
-Always use one tool call for one command.
-
 Your replies will be displayed in chat side panel, so try to be short and clear. You can use markdown formatting.
+
+**MANDATORY PROCESS (execute in this exact order):**
+
+1. **STEP 1: Analyze tools ONLY** - List all available tools and their descriptions. Match user command against EACH tool description. Note exact matches.
+   
+2. **STEP 2: Decide action** -
+   - If you need to know information about current Gantt state, tasks, links invoke **get_gantt_state**.
+   - If there is no information in your history about Gantt data in user's question, check the actual state of Gantt with **get_gantt_state**.
+   - If you need to change the tasks, links or Gantt state invoke **get_gantt_state** and only after use required tool according to the description.
+   - If no exact match → Use 'skip_command' tool.
+   - NEVER skip to final answer without tool step.
+
+3. **STEP 3: Final reply** - Only after tool confirmation, provide short natural language response.
 
 Remember to use tools in your replies.
 `;
@@ -69,7 +109,7 @@ async function talkToLLM(request) {
     messages: request,
     tools: schemaList,
   });
-  
+
   log.success("Got LLM reply");
   log.info(
     `Prompt tokens: ${res.usage.prompt_tokens}, response tokens: ${res.usage.completion_tokens}, total tokens: ${res.usage.total_tokens}`
@@ -78,7 +118,6 @@ async function talkToLLM(request) {
   const msg = res.choices[0].message;
   let content = msg.content;
   let calls = msg.tool_calls;
-
   const toolCall = calls ? calls[0] : "";
 
   log.info(`output: ${content}`);
