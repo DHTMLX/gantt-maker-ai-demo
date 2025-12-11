@@ -21,12 +21,14 @@ gantt.plugins({
   export_api: true,
   marker: true,
   tooltip: true,
+  critical_path: true,
 });
 
 gantt.config.auto_scheduling = true;
 gantt.config.open_tree_initially = true;
 gantt.config.auto_types = true;
 gantt.config.scale_height = 60;
+gantt.config.open_split_tasks = true;
 initZoom(gantt);
 fitTaskText(gantt);
 

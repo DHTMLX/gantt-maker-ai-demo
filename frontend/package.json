@@ -12,7 +12,7 @@
     "vite": "^6.3.5"
   },
   "dependencies": {
-    "@dhx/trial-gantt": "^9.0.13",
+    "@dhx/trial-gantt": "^9.1.0",
     "marked": "^16.1.0",
     "micromodal": "^0.6.1",
     "socket.io-client": "^4.8.1"

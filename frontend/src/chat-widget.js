@@ -69,7 +69,7 @@ export const initChat = ({ socket, runCommand, getProject }) => {
 
       const payload = {
         message,
-        project: getProject(),
+        state: getProject(),
       };
       showLoader();
       socket.emit('user_msg', JSON.stringify(payload));
@@ -93,6 +93,9 @@ export const initChat = ({ socket, runCommand, getProject }) => {
       try {
         const { cmd, params } = JSON.parse(txt);
 
+        if(cmd === "skip_command"){
+          displayReply(`This command cannot be processed. Please ask questions according to Gantt API`);
+        }
         if (cmd && cmd !== 'none') {
           runCommand(cmd, params);
           hideLoader();
