@@ -19,7 +19,7 @@ export const schemaList = [
             items: {
               type: "object",
               properties: {
-                id: { type: ["string", "number"] },
+                id: { type: ["string", "number"], description: "The ID of the task, can't be 0" },
                 text: { type: "string" },
                 start_date: { type: "string", format: "date", description: "ISO-8601 start date (e.g. 2025-05-01)" },
                 duration: { type: "number", description: "Duration is always an integer" },
@@ -243,6 +243,7 @@ export const schemaList = [
             items: {
               type: "object",
               properties: {
+                id: { type: ["string", "number"], description: "ID of the link" },
                 source: { type: ["string", "number"], description: "ID of the source task" },
                 target: { type: ["string", "number"], description: "ID of the target task" },
                 type: {
@@ -262,17 +263,31 @@ export const schemaList = [
   {
     type: "function",
     function: {
-      name: "delete_link",
-      description: "Delete an existing dependency link by its ID using gantt.deleteLink(linkId).",
+      name: "delete_links",
+      description: "If the user wants to delete one, several or all links. Turn a free-form description into a array of Gantt links. Returns ready-to-parse 'links[]'",
       parameters: {
         type: "object",
-        properties: {
-          id: {
-            type: ["string", "number"],
-            description: "ID of the link to delete",
+          properties: {
+          links: {
+            type: "array",
+            description: "Flat list of link objects exactly as dhtmlxGantt expects.",
+            items: {
+              type: "object",
+              properties: {
+                id: { type: ["string", "number"], description: "ID of the link" },
+                source: { type: ["string", "number"], description: "ID of the source task" },
+                target: { type: ["string", "number"], description: "ID of the target task" },
+                type: {
+                  type: "string",
+                  enum: ["0", "1", "2", "3"],
+                  description: "0 is Finish to Start, 1 is Start to Start, 2 is Finish to Finish, 3 is Start to Finish",
+                },
+              },
+            },
+            minItems: 1,
           },
         },
-        required: ["id"],
+        required: ["source", "target", "type", "id"],
       },
     },
   },
