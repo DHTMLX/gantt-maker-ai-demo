@@ -325,7 +325,6 @@ export default function (gantt) {
       case "clear_all":
         gantt.clearAll();
         break;
-
       case "get_gantt_state":
         break;
       default:
