@@ -5,7 +5,7 @@ import { Server } from "socket.io";
 import OpenAI from "openai";
 import { schemaList } from "./schemaList.js";
 import { log } from "./logger.js";
-import { getMessagesHistoryByClient, sessionMessagesByClient } from "./helper.js";
+import { getMessagesHistoryByClient, sessionMessagesByClient, validateMessages } from "./helper.js";
 
 const app = express();
 const http = createServer(app);
@@ -19,14 +19,21 @@ const openai = new OpenAI({
 app.use(express.static("../frontend/dist"));
 
 io.on("connection", (socket) => {
+  const idleTimer = setTimeout(() => {
+    if (!socket.connected) return;
+    sessionMessagesByClient.delete(socket.id);
+  }, 30 * 60 * 1000);
+
   socket.on("user_msg", async (text) => {
+    clearTimeout(idleTimer);
     const { message, state } = JSON.parse(text);
     const messages = getMessagesHistoryByClient(socket.id, generateSystemPrompt());
     messages.push({ role: "user", content: message });
     const maxTurns = 3;
     // handling conversation
     for (let turn = 1; turn <= maxTurns; turn++) {
-      const reply = await talkToLLM(messages);
+      const validatedMessages = validateMessages(messages);
+      const reply = await talkToLLM(validatedMessages);
       // if assistant ask additional question
       if (reply.assistant_msg) {
         socket.emit("assistant_msg", reply.assistant_msg);
@@ -72,6 +79,7 @@ io.on("connection", (socket) => {
 
   });
   socket.on("disconnect", () => {
+    clearTimeout(idleTimer);
     sessionMessagesByClient.delete(socket.id);
   });
 });
@@ -94,7 +102,8 @@ Your replies will be displayed in chat side panel, so try to be short and clear.
    - If no exact match → Use 'skip_command' tool.
    - NEVER skip to final answer without tool step.
 
-3. **STEP 3: Final reply** - Only after tool confirmation, provide short natural language response.
+3. **STEP 3: Always use one tool call for one command.**
+4. **STEP 4: Final reply** - Only after tool confirmation, provide short natural language response.
 
 Remember to use tools in your replies.
 `;
