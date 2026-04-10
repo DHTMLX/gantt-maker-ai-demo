@@ -2,10 +2,10 @@ import "@dhx/trial-gantt/codebase/dhtmlxgantt.css";
 
 import { Gantt } from "@dhx/trial-gantt";
 import { io } from "socket.io-client";
-import { initChat } from "./chat-widget.js";
-import initZoom from "./gantt-utils/zoom.js";
-import fitTaskText from "./gantt-utils/fit-text.js";
-import createCommandRunner from "./command-runner.js";
+import { initChat } from "./chat-widget.ts";
+import initZoom from "./gantt-utils/zoom.ts";
+import fitTaskText from "./gantt-utils/fit-text.ts";
+import createCommandRunner from "./command-runner.ts";
 
 const gantt = Gantt.getGanttInstance();
 gantt.config.columns = [
@@ -32,16 +32,19 @@ gantt.config.open_split_tasks = true;
 initZoom(gantt);
 fitTaskText(gantt);
 
-function parseSmartDate(str) {
+function parseSmartDate(str: string) {
   if (typeof str !== "string") return null;
   const p = str.trim().replace(/\//g, "-").split("-");
   if (p.length !== 3) return null;
 
   const [y, m, d] = p[0].length === 4 ? p : [p[2], p[1], p[0]];
   const dt = new Date(+y, +m - 1, +d);
-  return isNaN(dt) ? null : dt;
+  return isNaN(dt as any) ? null : dt;
 }
-gantt.templates.parse_date = parseSmartDate;
+gantt.templates.parse_date = (date: string): Date => {
+  const parsed = parseSmartDate(date);
+  return parsed ?? new Date();
+};
 
 gantt.init("gantt_here");
 

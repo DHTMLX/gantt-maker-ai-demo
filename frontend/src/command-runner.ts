@@ -1,5 +1,7 @@
-export default function (gantt) {
-  return function runCommand(cmd, args) {
+import { type GanttStatic, type Task, type Link } from "@dhx/trial-gantt";
+
+export default function (gantt: GanttStatic) {
+  return function runCommand(cmd: string, args: any) {
     const strToDate = gantt.date.str_to_date("%Y-%m-%d");
     const dateToStr = gantt.date.date_to_str("%Y-%m-%d");
 
@@ -11,7 +13,7 @@ export default function (gantt) {
       case "update_tasks":{
         const { tasks } = args;
         gantt.batchUpdate(function () {
-					tasks.forEach(task => {
+					tasks.forEach((task: Task) => {
             if(!gantt.isTaskExists(task.id)){
               console.warn(`there is no such task in Gantt: ${task.id}`)
               return;
@@ -20,10 +22,10 @@ export default function (gantt) {
             if(existedTask.type === "project") return;
 
             if(task.start_date){
-              task.start_date = gantt.templates.parse_date(task.start_date);
+              task.start_date = gantt.templates.parse_date(new Date(task.start_date).toISOString());
             }
             if(task.end_date){
-              task.end_date = gantt.templates.parse_date(task.end_date);
+              task.end_date = gantt.templates.parse_date(new Date(task.end_date).toISOString());
             }
             if(task.start_date && task.duration){
               task.end_date = gantt.calculateEndDate({
@@ -37,9 +39,9 @@ export default function (gantt) {
                 duration: -task.duration,
                 task: existedTask
               });
-            } else if(task.duration){
+            } else if(task.start_date && task.duration){
                 task.end_date = gantt.calculateEndDate({
-                start_date: existedTask.start_date,
+                start_date: existedTask.start_date!,
                 duration: task.duration,
                 task: existedTask
               });
@@ -54,7 +56,7 @@ export default function (gantt) {
       case "delete_tasks": {
         const { tasks } = args;
         gantt.batchUpdate(function () {
-          tasks.forEach(task => {
+          tasks.forEach((task: Task) => {
             if(gantt.isTaskExists(task.id)){
               gantt.deleteTask(task.id);
             }
@@ -67,8 +69,8 @@ export default function (gantt) {
         const parent = gantt.getTask(args.id || args.task_id);
         parent.$open = true;
         parent.render = "split";
-        const newIds = [];
-        (args.subtasks || args.new_tasks).forEach((t) => {
+        const newIds: any = [];
+        (args.subtasks || args.new_tasks).forEach((t: Task) => {
           newIds.push(gantt.addTask({ ...t, id: gantt.uid(), parent: parent.id }));
         });
         if (args.addFSLinks) {
@@ -86,7 +88,7 @@ export default function (gantt) {
       case "add_links":{
         const { links } = args;
         gantt.batchUpdate(function () {
-          links.forEach(link => {
+          links.forEach((link: Link) => {
             gantt.addLink({
               id: link.id,
               source: link.source,
@@ -101,7 +103,7 @@ export default function (gantt) {
       case "delete_links":{
         const { links } = args;
         gantt.batchUpdate(function () {
-          links.forEach(link => {
+          links.forEach((link: Link) => {
             if(gantt.isLinkExists(link.id)){
               gantt.deleteLink(link.id);
             }
@@ -113,7 +115,7 @@ export default function (gantt) {
       case "style_task": {
         const { id, color } = args;
 
-        const apply = (task) => {
+        const apply = (task: Task) => {
           task.color = color;
           gantt.refreshTask(task.id);
         };
@@ -131,7 +133,7 @@ export default function (gantt) {
       case "style_link":
         const { id: linkId, color } = args;
 
-        const apply = (link) => {
+        const apply = (link: Link) => {
           link.color = color;
           gantt.refreshLink(link.id);
         };
@@ -163,7 +165,7 @@ export default function (gantt) {
       case "set_text_color":
         const { id: taskId, color: textColor } = args;
 
-        const applyTextColor = (task) => {
+        const applyTextColor = (task: Task) => {
           task.textColor = textColor;
           gantt.refreshTask(task.id);
         };
@@ -180,7 +182,7 @@ export default function (gantt) {
       case "set_progress_color":
         const { id: taskId2, color: progressColor } = args;
 
-        const applyProgressColor = (task) => {
+        const applyProgressColor = (task: Task) => {
           task.progressColor = progressColor;
           gantt.refreshTask(task.id);
         };
@@ -203,10 +205,6 @@ export default function (gantt) {
             const endDate = "<b>End date:</b> " + dateToStr(end);
             return `${taskText} ${startDate} ${endDate}`;
           };
-        } else {
-          gantt.templates.tooltip_text = () => {
-            return false;
-          };
         }
         break;
 
@@ -226,12 +224,10 @@ export default function (gantt) {
         if (!Array.isArray(scales)) break;
 
         const newScales = scales.map((s) => {
-          const obj = { unit: s.unit, step: s.step };
+          const obj: any = { unit: s.unit, step: s.step };
           if (s.format) obj.format = s.format;
           if (s.cssClass) {
-            obj.css = function (date) {
-              if (date.getDay() === 0 || date.getDay() === 6) return "weekend";
-            };
+            obj.css = (date: Date) => date.getDay() === 0 || date.getDay() === 6 ? "weekend" : "";
           }
           return obj;
         });
@@ -241,7 +237,7 @@ export default function (gantt) {
         } else {
           gantt.config.scale_height = 40;
         }
-        gantt.config.scales = newScales;
+        gantt.config.scales = newScales as any;
         gantt.render();
         break;
       }
@@ -291,7 +287,7 @@ export default function (gantt) {
         gantt.parse({
           data: args.tasks,
           links:
-            (args.links || []).map((l) => {
+            (args.links || []).map((l:Link) => {
               return {
                 source: l.source || l.sourceId,
                 target: l.target || l.targetId,
@@ -306,7 +302,7 @@ export default function (gantt) {
         gantt.parse({
           data: args.tasks,
           links:
-            (args.links || []).map((l) => {
+            (args.links || []).map((l:Link) => {
               return {
                 source: l.source || l.sourceId,
                 target: l.target || l.targetId,

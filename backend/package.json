@@ -4,9 +4,10 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "dotenv -e ../.env -- nodemon server.js",
-    "dev:docker": "nodemon server.js",
-    "start": "node server.js"
+    "dev": "dotenv -e ../.env -- tsx watch server.ts --host 0.0.0.0",
+    "dev:docker": "npx tsx watch server.ts --host 0.0.0.0",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",
@@ -20,7 +21,12 @@
     "socket.io": "^4.8.1"
   },
   "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.5.2",
     "dotenv-cli": "^10.0.0",
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.2"
   }
 }
