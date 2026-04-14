@@ -14,7 +14,7 @@ import {
   trimHistory,
 } from "./helper.js";
 import { type UserMsgPayload } from "./types.js";
-import { MODEL, SKIP_MESSAGE } from "./constants.js";
+import { MAX_TURNS, MODEL, SKIP_MESSAGE } from "./constants.js";
 
 const app: Express = express();
 const httpServer: HttpServer = createServer(app);
@@ -54,7 +54,7 @@ io.on("connection", (socket: Socket) => {
       getMessagesHistoryByClient(socket.id, generateSystemPrompt());
       saveMessage(socket.id, { role: "user", content: message });
 
-      while (true) {
+      for (let turn = 0; turn < MAX_TURNS; turn++) {
         const history = trimHistory(getHistory(socket.id));
         const response = await openai.chat.completions.create({
           model: MODEL,
@@ -62,32 +62,31 @@ io.on("connection", (socket: Socket) => {
           tools: schemaList,
           tool_choice: "auto",
         });
-
         const msg = response.choices[0].message;
 
         if (!msg.tool_calls?.length) {
           socket.emit("assistant_msg", msg.content ?? "");
-          saveMessage(socket.id, {
-            role: "assistant",
-            content: msg.content ?? "",
-          });
-          break;
+          saveMessage(socket.id, { role: "assistant", content: msg.content ?? "" });
+          return;
         }
 
-        saveMessage(socket.id, {
-          role: "assistant",
-          tool_calls: msg.tool_calls,
-        });
+        saveMessage(socket.id, { role: "assistant", tool_calls: msg.tool_calls });
 
         for (const call of msg.tool_calls) {
-          const result = await executeToolCall({ socket, call });
-          saveMessage(socket.id, {
-            role: "tool",
-            tool_call_id: call.id,
-            content: JSON.stringify(result),
-          });
+          try {
+            const result = await executeToolCall({ socket, call });
+            saveMessage(socket.id, { role: "tool", tool_call_id: call.id, content: JSON.stringify(result) });
+          } catch (err) {
+            saveMessage(socket.id, {
+              role: "tool",
+              tool_call_id: call.id,
+              content: JSON.stringify({ ok: false, error: String(err) }),
+            });
+          }
         }
       }
+
+      socket.emit("assistant_msg", "Request required too many steps. Please try a simpler command.");
     } catch (err) {
       log.error("Error handling message", err);
       socket.emit("assistant_msg", "Something went wrong.");

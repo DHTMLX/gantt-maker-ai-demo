@@ -39,7 +39,7 @@ export default function (gantt: GanttStatic) {
                 duration: -task.duration,
                 task: existedTask
               });
-            } else if(task.start_date && task.duration){
+            } else if(task.duration){
                 task.end_date = gantt.calculateEndDate({
                 start_date: existedTask.start_date!,
                 duration: task.duration,
@@ -205,6 +205,8 @@ export default function (gantt: GanttStatic) {
             const endDate = "<b>End date:</b> " + dateToStr(end);
             return `${taskText} ${startDate} ${endDate}`;
           };
+        } else {
+          gantt.templates.tooltip_text = () => { return ""; };
         }
         break;
 

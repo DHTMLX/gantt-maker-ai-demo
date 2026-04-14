@@ -86,18 +86,14 @@ export const initChat = ({ socket, runCommand, getProject }: InitChatOptions) =>
         displayUserMsg(message);
         chatInput.value = "";
         chatSubmit.disabled = true;
-        const payload = {
-          message,
-          state: getProject(),
-        };
         showLoader();
-        socket.emit("user_msg", JSON.stringify(payload));
+        socket.emit("user_msg", JSON.stringify({ message }));
       }
 
       function displayUserMsg(msg: string): void {
         const div = document.createElement("div");
         div.className = "flex justify-end mb-3";
-        div.innerHTML = `<div class="bg-gray-800 text-white rounded-lg py-2 px-4 max-w-[70%]">${msg}</div>`;
+        div.innerHTML = `<div class="bg-gray-800 text-white rounded-lg py-2 px-4 max-w-[70%]">${DOMPurify.sanitize(msg)}</div>`;
         chatMessages.appendChild(div);
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
@@ -105,6 +101,7 @@ export const initChat = ({ socket, runCommand, getProject }: InitChatOptions) =>
       socket.on("assistant_msg", (txt: string) => {
         hideLoader();
         displayReply(txt);
+        chatSubmit.disabled = false;
       });
 
       socket.on("tool_call", (payload: { cmd: string; params: any }, ack?: (response: any) => void) => {
