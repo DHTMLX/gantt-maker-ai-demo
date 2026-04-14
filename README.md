@@ -112,25 +112,26 @@ FRONTEND_ORIGIN_DOCKER=http://localhost:3000
 frontend/  
  ├─ src/  
  │ ├─ gantt-utils/  
- │ ├─ chat-widget.js  
- │ ├─ command-runner.js  
+ │ ├─ chat-widget.ts 
+ │ ├─ command-runner.ts  
  │ ├─ style.css  
- │ └─ main.js  
- ├─ vite.config.js  
+ │ └─ main.ts  
+ ├─ vite.config.ts  
  ├─ Dockerfile  
  ├─ index.html  
- ├─ vite.config.js  
  ├─ .gitignore  
  ├─ package-lock.json  
  └─ package.json
 
 backend/  
  ├─ .gitignore  
- ├─ Dockerfile  
- ├─ logger.js  
- ├─ schemaList.js  
- ├─ server.js  
- ├─ helper.js
+ ├─ Dockerfile 
+ ├─ constants.ts 
+ ├─ logger.ts  
+ ├─ schemaList.ts  
+ ├─ server.ts  
+ ├─ helper.ts
+ ├─ types.ts 
  ├─ package-lock.json  
  └─ package.json
 
