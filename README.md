@@ -30,17 +30,19 @@ the user's request provided via the chatbot, is sent to LLM, which then calls a 
 1. **Function calling with LLM**
 
 - The backend uses the function calling feature of the OpenAI API.
-- Available functions are defined in `backend/schemaList`.js.
+- Available functions are defined in `backend/schemaList`.ts.
 - Each function has a schema describing the parameters the model can return.
 
 2. **Client-side command runner**
 
-- On the frontend, the returned tool calls are handled in `frontend/src/command-runner.js`
+- On the frontend, the returned tool calls are handled in `frontend/src/command-runner.ts`
 
-3. **System prompt and context**
+3. **System prompt and history management**
 
-- The LLM only receives a system prompt with project generation rules, the latest user message, and a current snapshot of tasks/links in the project.
-- The model does not keep track of earlier conversation history, so each command is interpreted independently.
+- Per-client session storage: Each Socket.IO connection maintains its own conversation history using `sessionMessagesByClient` Map.
+- Smart history trimming: The `trimHistory()` function intelligently groups messages into "blocks" (user/assistant pairs + complete tool call cycles) and keeps only the most recent `MAX_MESSAGES` blocks to stay within token limits.
+- Dynamic system prompt: `generateSystemPrompt()` creates a fresh system message for each new session.
+- Tool call lifecycle: Assistant tool_calls are grouped with ALL their corresponding tool results before trimming, preserving complete execution cycles for the LLM context.
 
 4. **Models and limitations**
 
