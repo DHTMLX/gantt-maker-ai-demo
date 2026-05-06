@@ -5,7 +5,9 @@ The chatbot understands natural language commands and can perform actions such a
 
 ### **[✨ Try the Live Demo >>>](https://dhtmlx.com/docs/demo/ai-gantt-maker/)**
 
-The setup combines **DHTMLX Gantt** for project visualization, a **frontend app (Vite + React)** for UI, and a **backend (Express + Socket.IO)** for communication with an LLM (via OpenAI API or a compatible service). Everything is containerized with Docker.
+**Related guide**: [Integrate an AI Assistant Using Tool Calls](https://docs.dhtmlx.com/gantt/integrations/ai-tools/ai-assistant/) — walkthrough of the integration pattern this demo implements.
+
+The setup combines **DHTMLX Gantt** for project visualization, a **frontend app (Vite + TypeScript + HTML)** for UI, and a **backend (Express + Socket.IO)** for communication with an LLM (via OpenAI API or a compatible service). Everything is containerized with Docker.
 
 ## Features
 
@@ -30,7 +32,7 @@ the user's request provided via the chatbot, is sent to LLM, which then calls a 
 1. **Function calling with LLM**
 
 - The backend uses the function calling feature of the OpenAI API.
-- Available functions are defined in `backend/schemaList`.ts.
+- Available functions are defined in `backend/schemaList.ts`.
 - Each function has a schema describing the parameters the model can return.
 
 2. **Client-side command runner**
@@ -169,8 +171,9 @@ Usage of OpenAI API (or other LLM providers) is subject to their terms of servic
 
 ## Useful links
 
+- [Integrate an AI Assistant Using Tool Calls](https://docs.dhtmlx.com/gantt/integrations/ai-tools/ai-assistant/) — guide that walks through the integration pattern this demo implements
 - [DHTMLX Gantt Product Page](https://dhtmlx.com/docs/products/dhtmlxGantt/)
 - [DHTMLX Gantt Documentation](https://docs.dhtmlx.com/gantt/)
-- [OpenAI API Docs](https://platform.openai.com/docs/)
+- [OpenAI API — function calling](https://platform.openai.com/docs/guides/function-calling)
 - [Socket.IO Docs](https://socket.io/docs/v4/)
 - [DHTMLX technical support forum](https://forum.dhtmlx.com/)
