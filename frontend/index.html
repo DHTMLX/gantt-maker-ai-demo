@@ -4,6 +4,19 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/x-icon" href="./favicon.ico" />
 
+    <script>
+      (function () {
+        var theme = "light";
+        try {
+          var param = new URLSearchParams(location.search).get("theme");
+          if (param === "dark" || param === "light") theme = param;
+          else if (window.matchMedia("(prefers-color-scheme: dark)").matches) theme = "dark";
+        } catch (e) {}
+        window.__demoTheme = theme;
+        if (theme === "dark") document.documentElement.setAttribute("data-gantt-theme", "dark");
+      })();
+    </script>
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.16/tailwind.min.css" rel="stylesheet">
     <link href="./src/style.css" rel="stylesheet" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />

@@ -6,6 +6,7 @@ import { initChat } from "./chat-widget.ts";
 import initZoom from "./gantt-utils/zoom.ts";
 import fitTaskText from "./gantt-utils/fit-text.ts";
 import createCommandRunner from "./command-runner.ts";
+import { getInitialTheme, initThemeSync, skinFor } from "./theme.ts";
 
 const gantt = Gantt.getGanttInstance();
 gantt.config.columns = [
@@ -46,7 +47,11 @@ gantt.templates.parse_date = (date: string): Date => {
   return parsed ?? new Date();
 };
 
+gantt.skin = skinFor(getInitialTheme());
+
 gantt.init("gantt_here");
+
+initThemeSync(gantt);
 
 const runCommand = createCommandRunner(gantt);
 
